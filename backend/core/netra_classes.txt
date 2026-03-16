@@ -1,0 +1,13 @@
+Chair
+Table
+Door
+Stairs
+Person
+Car
+Bus
+Bicycle
+Bag
+Bottle
+Mobile phone
+Laptop
+Traffic light

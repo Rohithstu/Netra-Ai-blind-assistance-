@@ -1,0 +1,50 @@
+# Netra AI Project Gitignore
+
+# Python basics
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Model weights (Large files)
+*.pt
+*.onnx
+*.engine
+backend/*.pt
+backend/core/*.pt
+
+# JavaScript / Web
+node_modules/
+dist/
+build/
+.npm
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Browser testing / automation (Gemini/Antigravity)
+.gemini/
+recorded_actions/
+screenshots/
+task_media/
+
+# Windows system files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Logs and temp files
+*.log
+/tmp/
+.vscode/
+.idea/
+
+# Core Engine Specific
+backend/output_*/
+backend/fusion_engine_log.json

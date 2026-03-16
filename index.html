@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Netra AI Vision Interface</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <!-- TensorFlow.js and COCO-SSD -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Top Navigation Bar -->
+        <nav class="top-nav floating-panel">
+            <div class="nav-brand">
+                <div class="logo-glow"></div>
+                <h1>Netra <span>AI Vision Interface</span></h1>
+            </div>
+
+            <div class="nav-controls">
+                <button id="btn-camera" class="btn primary-btn pulse-glow">
+                    <span class="icon">💻</span> Camera Mode
+                </button>
+                <button id="btn-stop-camera" class="btn danger-btn hidden">
+                    <span class="icon">⏹️</span> Stop Camera
+                </button>
+
+                <!-- Camera Device Selector (shown after permission granted) -->
+                <div id="camera-selector-group" class="camera-selector-group hidden">
+                    <select id="camera-select" class="camera-select" title="Select camera source">
+                        <option value="">Detecting cameras...</option>
+                    </select>
+                    <button id="btn-refresh-cameras" class="btn-refresh" title="Refresh camera list">
+                        🔄
+                    </button>
+                </div>
+
+                <div class="divider"></div>
+
+                <button id="btn-iriun-launcher" class="btn iriun-btn pulse-glow">
+                    <span class="icon">📱</span> Connect Iriun
+                </button>
+
+                <div class="upload-wrapper">
+                    <input type="file" id="video-upload" accept="video/mp4,video/webm,video/quicktime"
+                        class="hidden-input">
+                    <button id="btn-upload" class="btn secondary-btn">
+                        <span class="icon">📁</span> Upload Video
+                    </button>
+                    <button id="btn-stop-upload" class="btn danger-btn hidden">
+                        <span class="icon">⏹️</span> Stop Video
+                    </button>
+                </div>
+
+                <div class="divider"></div>
+
+                <button id="btn-start" class="btn action-btn disabled" disabled>
+                    <span class="icon">▶️</span> Start Analysis
+                </button>
+                <button id="btn-stop" class="btn danger-btn hidden">
+                    <span class="icon">⏹️</span> Stop Analysis
+                </button>
+
+                <div class="divider"></div>
+
+                    Depth Map
+                </label>
+
+                <div class="divider"></div>
+
+                <!-- AI Engine Selector -->
+                <div class="engine-selector">
+                    <span class="engine-label">Engine:</span>
+                    <div class="engine-toggle-group">
+                        <button id="engine-browser" class="engine-btn active" title="Run COCO-SSD in browser">🌐 Browser</button>
+                        <button id="engine-core" class="engine-btn" title="Run YOLOv8 on Python Core">🧠 Core AI</button>
+                    </div>
+                    <div id="core-status" class="core-status hidden" title="Backend Server Status">
+                        <span class="status-dot"></span>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <div class="main-content">
+            <!-- Main Visual Panel -->
+            <div class="visual-panel floating-panel">
+                <div class="panel-header">
+                    <h2>Live Perception Feed</h2>
+                    <div id="system-status" class="status-indicator">
+                        <span class="status-dot"></span>
+                        <span class="status-text">System Idle</span>
+                    </div>
+                </div>
+
+                <div class="video-container" id="video-container">
+                    <div class="video-placeholder" id="video-placeholder">
+                        <div class="placeholder-icon">👁️</div>
+                        <p>Select Camera or Upload Video to begin</p>
+                    </div>
+
+                    <video id="source-video" playsinline muted autoplay></video>
+                    <canvas id="overlay-canvas"></canvas>
+                </div>
+                <div class="performance-stats" id="perf-stats">FPS: --</div>
+            </div>
+
+            <!-- Right Column: Detection + Spatial panels -->
+            <div class="right-column">
+                <!-- Priority Alerts Panel (Layer 4) -->
+                <div class="priority-panel floating-panel">
+                    <div class="panel-header">
+                        <h2>Priority Decision</h2>
+                        <div class="layer-badge layer-badge-l4">L4</div>
+                    </div>
+                    <div id="priority-panel-body" class="priority-body">
+                        <div class="empty-state">System evaluating priority...</div>
+                    </div>
+                </div>
+
+                <!-- Detected Objects Panel -->
+                <div class="side-panel floating-panel">
+                    <div class="panel-header">
+                        <h2>Detected Objects</h2>
+                        <div class="count-badge" id="object-count">0</div>
+                    </div>
+                    <div class="detection-list" id="detection-list">
+                        <div class="empty-state">No objects detected</div>
+                    </div>
+                </div>
+
+                <!-- Spatial Awareness Panel (Layer 2) -->
+                <div class="spatial-panel floating-panel">
+                    <div class="panel-header">
+                        <h2>Spatial Awareness</h2>
+                        <div class="layer-badge">L2</div>
+                    </div>
+                    <div id="spatial-panel-body" class="spatial-body">
+                        <div class="empty-state">Start analysis to see spatial data</div>
+                    </div>
+                </div>
+
+                <!-- Detected Situations Panel (Layer 3) -->
+                <div class="events-panel floating-panel">
+                    <div class="panel-header">
+                        <h2>Detected Situations</h2>
+                        <div class="layer-badge layer-badge-l3">L3</div>
+                    </div>
+                    <div id="events-panel-body" class="events-body">
+                        <div class="empty-state">No active situations</div>
+                    </div>
+                </div>
+
+                <!-- Memory Insight Panel (Layer 5) -->
+                <div class="memory-panel floating-panel">
+                    <div class="panel-header">
+                        <h2>Memory Insight</h2>
+                        <div class="layer-badge layer-badge-l5">L5</div>
+                    </div>
+                    <div id="memory-panel-body" class="memory-body">
+                        <div class="empty-state">Knowledge base initializing...</div>
+                    </div>
+                </div>
+
+                <!-- Voice Interaction Panel (Layer 6) -->
+                <div class="voice-panel floating-panel">
+                    <div class="panel-header">
+                        <h2>Voice Interaction</h2>
+                        <div class="layer-badge layer-badge-l6">L6</div>
+                        <button id="mic-btn" class="mic-btn" title="Click to speak">🎤</button>
+                    </div>
+                    <div id="voice-panel-body" class="voice-body">
+                        <div class="voice-row">
+                            <span class="voice-label">Last Alert:</span>
+                            <span id="voice-last-alert" class="voice-value">None</span>
+                        </div>
+                        <div class="voice-row">
+                            <span class="voice-label">Command:</span>
+                            <span id="voice-command" class="voice-value">...</span>
+                        </div>
+                        <div class="voice-row response-row">
+                            <span class="voice-label">AI Response:</span>
+                            <span id="voice-response" class="voice-value">...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scene Awareness Panel (Layer 7) -->
+                <div class="scene-panel floating-panel">
+                    <div class="panel-header">
+                        <h2>Scene Intelligence</h2>
+                        <div class="layer-badge layer-badge-l7">L7</div>
+                    </div>
+                    <div id="scene-panel-body" class="scene-body">
+                        <div class="empty-state">Observing environment context...</div>
+                    </div>
+                </div>
+
+                <!-- Navigation Guidance Panel (Layer 8) -->
+                <div class="nav-panel floating-panel">
+                    <div class="panel-header">
+                        <h2>Navigation Guidance</h2>
+                        <div class="layer-badge layer-badge-l8">L8</div>
+                    </div>
+                    <div id="nav-panel-body" class="nav-body">
+                        <div class="empty-state">Calculating safe path...</div>
+                    </div>
+                </div>
+
+                <!-- Adaptive Intelligence Panel (Layer 9) -->
+                <div class="adaptive-panel floating-panel">
+                    <div class="panel-header">
+                        <h2>Adaptive Intelligence</h2>
+                        <div class="layer-badge layer-badge-l9">L9</div>
+                    </div>
+                    <div id="adaptive-panel-body" class="adaptive-body">
+                        <div class="empty-state">Learning patterns from experience...</div>
+                    </div>
+                </div>
+
+                <!-- Autonomous AI Master Panel (Layer 10) -->
+                <div class="autonomous-panel floating-panel master-core">
+                    <div class="panel-header">
+                        <h2>Autonomous Guidance AI</h2>
+                        <div class="layer-badge layer-badge-l10">L10</div>
+                    </div>
+                    <div id="autonomous-panel-body" class="autonomous-body">
+                        <div class="empty-state">Activating central brain...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Background decorative grid -->
+    <div class="bg-grid"></div>
+
+    <!-- Iriun Connection Guide Modal -->
+    <div id="iriun-modal" class="modal hidden">
+        <div class="modal-content floating-panel">
+            <div class="modal-header">
+                <h2>📱 Connect Iriun Phone Camera</h2>
+                <button id="close-iriun-modal" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Follow these steps to use your phone as a camera:</p>
+                <ol class="setup-steps">
+                    <li>Open <b>Iriun Webcam</b> app on your phone.</li>
+                    <li>Ensure PC and Phone are on the <b>same Wi-Fi</b>.</li>
+                    <li>Verify the <b>Iriun Desktop</b> app is running on this PC.</li>
+                    <li>If it doesn't connect, check your <b>Firewall</b> settings.</li>
+                </ol>
+                <div class="search-status">
+                    <span class="spinner"></span> 
+                    <span id="iriun-search-text">Searching for your phone...</span>
+                </div>
+
+                <div id="iriun-debug-list" class="iriun-debug-list">
+                    <div class="debug-header">
+                        <h4>Visible Cameras:</h4>
+                        <button id="btn-manual-switch" class="text-link" title="Bypass auto-scan and pick any camera">Manual Select</button>
+                    </div>
+                    <ul id="detected-cameras-ul">
+                        <li>(Identifying devices...)</li>
+                    </ul>
+                </div>
+
+                <div class="pro-tip">
+                    <span class="tip-icon">💡</span>
+                    <p><b>PRO TIP:</b> For a zero-lag, no-disconnect experience, use a <b>USB cable</b> and enable <b>USB Debugging</b> on your phone.</p>
+                </div>
+            </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-iriun-troubleshoot" class="btn secondary-btn">Firewall Help</button>
+                <button id="btn-iriun-retry" class="btn primary-btn">Retry Scan</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/autonomous.js"></script>
+    <script src="js/adaptive.js"></script>
+    <script src="js/navigation.js"></script>
+    <script src="js/scene.js"></script>
+    <script src="js/voice.js"></script>
+    <script src="js/memory.js"></script>
+    <script src="js/priority.js"></script>
+    <script src="js/events.js"></script>
+    <script src="js/spatial.js"></script>
+    <script src="js/perception.js"></script>
+    <script src="js/app.js"></script>
+</body>
+
+</html>
